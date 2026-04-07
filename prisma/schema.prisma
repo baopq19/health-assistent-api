@@ -1,0 +1,88 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum ProductType {
+  ONE_TIME
+  SUBSCRIPTION
+}
+
+enum BillingInterval {
+  DAY
+  WEEK
+  MONTH
+  YEAR
+}
+
+enum PurchaseStatus {
+  PENDING
+  ACTIVE
+  CANCELED
+  EXPIRED
+  REFUNDED
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+
+  purchases UserProduct[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        ProductType @default(ONE_TIME)
+
+  /// Price in the smallest currency unit (e.g. cents)
+  priceCents  Int
+  currency    String      @default("USD")
+
+  /// Only for SUBSCRIPTION products
+  interval      BillingInterval?
+  intervalCount Int             @default(1)
+
+  isActive    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  purchases UserProduct[]
+}
+
+/// Tracks which user purchased which product.
+/// Works for both one-time purchases and subscriptions (use periodStart/periodEnd).
+model UserProduct {
+  id        String @id @default(cuid())
+  userId    String
+  productId String
+
+  status PurchaseStatus @default(PENDING)
+
+  quantity  Int    @default(1)
+  priceCents Int
+  currency  String @default("USD")
+
+  purchasedAt DateTime @default(now())
+
+  /// For subscriptions (optional for one-time purchases)
+  periodStart DateTime?
+  periodEnd   DateTime?
+
+  /// Optional fields to link to payment provider records (Stripe, etc.)
+  externalCustomerId     String?
+  externalSubscriptionId String?
+  externalInvoiceId      String?
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([productId])
+  @@index([userId, productId])
+}
