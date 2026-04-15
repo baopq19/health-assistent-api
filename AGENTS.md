@@ -1,6 +1,7 @@
 ## Learned User Preferences
 
 - Prefer Prisma guidance aligned with the latest Prisma 7 docs, especially around `prisma.config.ts` and `PrismaClient` constructor config (adapter vs Accelerate).
+- Prefer Prisma 7 setup where `schema.prisma` does **not** include datasource connection URLs; use `prisma.config.ts` for Migrate connection config and pass `adapter` / `accelerateUrl` via the `PrismaClient` constructor.
 - Prefer README instructions that are “first time clone” friendly (prereqs, one-time setup, then run/dev commands).
 - New to Prisma; value clear mental models for relations (join tables like user↔product purchases/subscriptions) and how schema splitting works.
 
