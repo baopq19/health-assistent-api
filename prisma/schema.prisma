@@ -30,9 +30,14 @@ model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String?
+  workosUserId String? @unique
   createdAt DateTime @default(now())
 
   purchases UserProduct[]
+  deviceTokens DeviceToken[]
+  notificationSettings NotificationSettings?
+  chatThreads ChatThread[]
+  chatMessages ChatMessage[]
 }
 
 model Product {
@@ -85,4 +90,90 @@ model UserProduct {
   @@index([userId])
   @@index([productId])
   @@index([userId, productId])
+}
+
+enum DevicePlatform {
+  ANDROID
+  IOS
+  WEB
+}
+
+enum NotificationPreference {
+  EMAIL_ONLY
+  PUSH_ONLY
+  BOTH
+  NONE
+}
+
+enum ChatMessageRole {
+  USER
+  ASSISTANT
+  SYSTEM
+}
+
+model DeviceToken {
+  id         String         @id @default(cuid())
+  userId     String
+  platform   DevicePlatform
+  token      String         @unique
+  isActive   Boolean        @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, platform])
+  @@index([userId, isActive])
+}
+
+model NotificationSettings {
+  id                     String                 @id @default(cuid())
+  userId                 String                 @unique
+  preference             NotificationPreference @default(BOTH)
+  timezone               String                 @default("UTC")
+  quietHoursStartMin     Int?
+  quietHoursEndMin       Int?
+  reminderDefaultLeadMin Int                    @default(0)
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+
+  user                   User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatThread {
+  id                 String      @id @default(cuid())
+  userId             String
+  title              String?
+  lastMessageAt      DateTime?
+  lastMessagePreview String?
+  archivedAt         DateTime?
+  createdAt          DateTime    @default(now())
+  updatedAt          DateTime    @updatedAt
+
+  user               User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages           ChatMessage[]
+
+  @@index([userId, updatedAt])
+  @@index([userId, lastMessageAt])
+}
+
+model ChatMessage {
+  id        String          @id @default(cuid())
+  threadId  String
+  userId    String
+  role      ChatMessageRole
+  content   String
+  model     String?
+  promptVer Int?
+  tokensIn  Int?
+  tokensOut Int?
+  latencyMs Int?
+  createdAt DateTime        @default(now())
+
+  thread    ChatThread      @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([userId, createdAt])
 }
