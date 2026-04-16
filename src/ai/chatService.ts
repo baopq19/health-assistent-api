@@ -14,17 +14,6 @@ const SYSTEM_INSTRUCTION = [
   "Do not request or store unnecessary personal data.",
 ].join("\n");
 
-function requireEnv(key: string): string {
-  const v = process.env[key];
-  if (!v) {
-    throw new TRPCError({
-      code: "PRECONDITION_FAILED",
-      message: `Missing required env var: ${key}`,
-    });
-  }
-  return v;
-}
-
 function toGeminiContents(messages: ChatHistoryMessage[]): string {
   return messages
     .map(m => {
