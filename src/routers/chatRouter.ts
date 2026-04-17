@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { authedProcedure, router } from "../trpc";
-import { generateChatReply } from "../ai/chatService";
+import { generateChatReply, generateThreadTitle } from "../ai/chatService";
 
 const messageContentSchema = z.string().min(1).max(16_000);
 
@@ -129,9 +129,11 @@ export const chatRouter = router({
         select: { role: true, content: true },
       });
 
-      const { content: assistantContent, model } = await generateChatReply({
-        messages: recent.slice().reverse(),
-      });
+      const needsTitle = thread.title == null;
+      const [{ content: assistantContent, model }, generatedTitle] = await Promise.all([
+        generateChatReply({ messages: recent.slice().reverse() }),
+        needsTitle ? generateThreadTitle(input.content) : Promise.resolve(""),
+      ]);
 
       const assistantMessage = await ctx.prisma.chatMessage.create({
         data: {
@@ -151,6 +153,7 @@ export const chatRouter = router({
         data: {
           lastMessageAt: assistantMessage.createdAt,
           lastMessagePreview: preview,
+          ...(needsTitle && generatedTitle ? { title: generatedTitle } : {}),
         },
         select: {
           id: true,
